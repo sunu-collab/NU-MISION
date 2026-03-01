@@ -9,15 +9,30 @@
     <style>
         :root { --primary-color: #1a237e; --accent-color: #ffc107; --bg-color: #f4f7f9; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); padding: 20px; }
-        .container { max-width: 1400px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+        
+        /* เพิ่ม overflow-x: auto; เพื่อให้ iPad เลื่อนตารางซ้ายขวาได้ */
+        .container { max-width: 1400px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); overflow-x: auto; }
         
         .header { text-align: center; margin-bottom: 30px; border-bottom: 4px solid var(--primary-color); padding-bottom: 20px; }
-        .logo-container img { height: 160px; width: auto; object-fit: contain; }
         
-        .admin-panel { background: #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+        .logo-container { 
+            display: block;
+            margin: 0 auto 20px auto; 
+            background-image: url('data:image/png;base64,วางรหัสยาวๆทั้งหมดตรงนี้');
+            background-size: contain; 
+            background-repeat: no-repeat; 
+            background-position: center; 
+            width: 100%; 
+            height: 160px; 
+        }
+        
+        .header h1 { margin: 10px 0; color: var(--primary-color); font-weight: 800; font-size: 30px; }
+
+        .admin-panel { background: #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 10px; align-items: center; justify-content: center; min-width: 600px; }
         .admin-panel input { width: 450px; padding: 12px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        /* เพิ่ม min-width: 1100px; เพื่อล็อกขนาดตารางไม่ให้บีบตัวในจอเล็ก */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; min-width: 1100px; }
         th { background: var(--primary-color); color: white; padding: 15px; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); }
         td { border: 1px solid #eee; padding: 12px; text-align: center; word-wrap: break-word; }
 
@@ -29,7 +44,7 @@
         
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
         .btn-add { background: var(--primary-color); color: white; }
-        .btn-main { background: var(--accent-color); color: white; width: 100%; margin-top: 25px; font-size: 22px; box-shadow: 0 5px 0 #cc9a06; font-weight: 800; }
+        .btn-main { background: var(--accent-color); color: white; width: 100%; margin-top: 25px; font-size: 22px; box-shadow: 0 5px 0 #cc9a06; font-weight: 800; min-width: 600px; }
         
         .btn-edit { background: #4a5568; color: white; margin-right: 5px; }
         .btn-delete { background: #e53e3e; color: white; }
@@ -48,9 +63,7 @@
 
 <div class="container">
     <div class="header">
-        <div class="logo-container">
-            <img src="https://drive.google.com/uc?export=view&id=19WyvCU-uSsCgwBCLJEeqntLU-hqZkfdR" alt="Logo">
-        </div>
+        <div class="logo-container"></div>
         <h1>NU Mission 2026 Scoring</h1>
         <p>ระบบตัดสินรอบชิงชนะเลิศ (Final Round)</p>
     </div>
@@ -77,15 +90,13 @@
                 <th width="180">จัดการ</th>
             </tr>
         </thead>
-        <tbody id="tableBody">
-            </tbody>
+        <tbody id="tableBody"></tbody>
     </table>
 
     <button class="btn btn-main" onclick="runProcess()">📊 ประมวลผลและตัดสินลำดับ (Ranking)</button>
 </div>
 
 <script>
-    // Firebase Configuration จากที่คุณให้มา
     const firebaseConfig = {
         apiKey: "AIzaSyDCZB-UH_dGvLse9CnMmTurmVpDHTvW6RM",
         authDomain: "nu-mission-2025.firebaseapp.com",
@@ -95,11 +106,9 @@
         appId: "1:55452072551:web:b6a67a07e9e70d73ee72c2"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
     window.onload = loadFromCloud;
 
     async function loadFromCloud() {
@@ -107,7 +116,6 @@
         tbody.innerHTML = '<tr><td colspan="9">กำลังโหลดข้อมูลจาก Cloud...</td></tr>';
         
         try {
-            // ดึงข้อมูลเรียงตามลำดับการแสดง (order)
             const snapshot = await db.collection("FinalResults2026").orderBy("order", "asc").get();
             const data = [];
             snapshot.forEach(doc => {
@@ -126,24 +134,18 @@
         if (!name) return alert("กรุณาระบุชื่อทีม");
 
         try {
-            // เช็คจำนวนทีมปัจจุบันเพื่อกำหนดลำดับ (Order)
             const snapshot = await db.collection("FinalResults2026").get();
             const nextOrder = snapshot.size + 1;
 
             const newTeam = {
                 order: nextOrder,
                 name: name,
-                jRaw: 0,
-                vRaw: 0,
-                j50: 0,
-                v50: 0,
-                total: 0,
-                rank: '-'
+                jRaw: 0, vRaw: 0, j50: 0, v50: 0, total: 0, rank: '-'
             };
 
             await db.collection("FinalResults2026").add(newTeam);
             nameInput.value = '';
-            loadFromCloud(); // รีเฟรชตารางทันที
+            loadFromCloud();
         } catch (e) {
             alert("เกิดข้อผิดพลาด: " + e.message);
         }
@@ -154,7 +156,6 @@
         if (rows.length === 0) return;
 
         let totalVotes = 0;
-        // คำนวณยอดโหวตรวมทั้งหมดก่อน
         rows.forEach(r => {
             const vInput = r.querySelector('.i-v');
             if (vInput) totalVotes += parseFloat(vInput.value) || 0;
@@ -175,7 +176,6 @@
             return { id, order, name, jRaw, vRaw, j50, v50, total };
         });
 
-        // สร้าง Ranking (เฉพาะคนที่มีคะแนน)
         let sorted = dataset.filter(d => d.total > 0).sort((a, b) => b.total - a.total);
         
         const batch = db.batch();
