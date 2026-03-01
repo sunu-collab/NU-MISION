@@ -2,54 +2,53 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>NU Mission 2026 - Performance Order System</title>
+    <title>NU Mission 2026 - Cloud Sync System (Full Name View)</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-color: #1a237e;
-            --accent-color: #ffc107;
-            --bg-color: #f4f7f9;
+        :root { --primary-color: #1a237e; --accent-color: #ffc107; --bg-color: #f4f7f9; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); padding: 20px; }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+        
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 4px solid var(--primary-color); padding-bottom: 20px; }
+        .logo-container img { height: 140px; width: auto; }
+        
+        .admin-panel { background: #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+        .admin-panel input { width: 450px; padding: 12px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; } /* ใช้ table-layout: fixed เพื่อคุมพื้นที่ */
+        th { background: var(--primary-color); color: white; padding: 15px; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); }
+        td { border: 1px solid #eee; padding: 12px; text-align: center; word-wrap: break-word; }
+
+        /* ปรับแต่งช่องชื่อทีมให้แสดงผลเต็มๆ */
+        .team-name-cell { text-align: left !important; width: 35%; } /* ให้พื้นที่ชื่อทีม 35% ของตาราง */
+        .input-name-display { 
+            width: 100%; 
+            border: none; 
+            background: transparent; 
+            font-size: 17px; 
+            font-weight: bold; 
+            color: #1a237e; 
+            white-space: normal; /* ให้ขึ้นบรรทัดใหม่ได้ */
+            overflow: visible;
+            display: block;
+            pointer-events: none;
         }
 
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); padding: 20px; }
-        .container { max-width: 1300px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+        .input-score { width: 70px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; text-align: center; font-size: 16px; font-weight: bold; }
         
-        /* Header & Logo */
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 4px solid var(--primary-color); padding-bottom: 20px; }
-        .logo-container img { height: 140px; width: auto; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1)); }
-        .header h1 { margin: 10px 0; color: var(--primary-color); font-weight: 800; font-size: 30px; }
-
-        /* Admin Panel */
-        .admin-panel { background: #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 10px; align-items: center; justify-content: center; }
-        .admin-panel input { width: 350px; padding: 12px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; }
-        
-        /* Table */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: var(--primary-color); color: white; padding: 15px; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); }
-        td { border: 1px solid #eee; padding: 10px; text-align: center; transition: 0.3s; }
-
-        .input-score { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; text-align: center; font-size: 16px; font-weight: bold; }
-        .input-name-locked { width: 95%; padding: 8px; border: none; background: transparent; text-align: left; font-size: 16px; font-weight: bold; pointer-events: none; }
-        .input-name-locked.editable { background: white; border: 1px solid #3182ce; pointer-events: auto; }
-
         .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-add { background: var(--primary-color); color: white; }
-        .btn-main { background: var(--accent-color); color: white; width: 100%; margin-top: 25px; font-size: 20px; box-shadow: 0 5px 0 #cc9a06; }
-        .btn-main:active { transform: translateY(3px); box-shadow: 0 2px 0 #cc9a06; }
-        .btn-edit { background: #94a3b8; color: white; font-size: 11px; padding: 5px 10px; }
+        .btn-main { background: var(--accent-color); color: white; width: 100%; margin-top: 25px; font-size: 22px; box-shadow: 0 5px 0 #cc9a06; font-weight: 800; }
+        
+        .rank-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: 800; min-width: 45px; border: 1px solid #ddd; }
+        .r1 { background: #fef3c7; color: #92400e; border-color: #f59e0b; font-size: 20px; }
+        .r2 { background: #f1f5f9; color: #475569; }
+        .r3 { background: #fff7ed; color: #9a3412; }
+        .r4 { background: #eff6ff; color: #1e40af; }
 
-        /* Highlight Rank 1-4 (ย้ายมาโชว์ที่คอลัมน์สุดท้าย) */
-        .rank-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: 800; min-width: 40px; }
-        .r1 { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; } /* ที่ 1 */
-        .r2 { background: #f1f5f9; color: #475569; border: 1px solid #94a3b8; } /* ที่ 2 */
-        .r3 { background: #fff7ed; color: #9a3412; border: 1px solid #ea580c; } /* ที่ 3 */
-        .r4 { background: #eff6ff; color: #1e40af; border: 1px solid #3b82f6; } /* ที่ 4 */
-
-        .final-val { font-weight: 800; font-size: 18px; color: var(--primary-color); }
-        .total-info { text-align: right; font-weight: bold; color: #e11d48; margin-bottom: 10px; font-size: 20px; }
-        .btn-clear { background: none; color: #999; border: none; cursor: pointer; margin-top: 40px; }
+        .sync-btn { background: #edf2f7; border: 1px solid #cbd5e0; padding: 5px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; float: right; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -57,40 +56,37 @@
 <div class="container">
     <div class="header">
         <div class="logo-container">
-            <img src="https://lh3.googleusercontent.com/d/19WyvCU-uSsCgwBCLJEeqntLU-hqZkfdR" alt="NU Mission Logo">
+            <img src="https://drive.google.com/uc?export=view&id=19WyvCU-uSsCgwBCLJEeqntLU-hqZkfdR" alt="Logo">
         </div>
         <h1>NU Mission 2026: Scoring System</h1>
-        <p>บันทึกคะแนนตามลำดับการแสดง (Performance Order)</p>
+        <p>แสดงชื่อทีมเต็มรูปแบบ (Full Display Mode)</p>
     </div>
 
     <div class="admin-panel">
-        <strong>เพิ่มลำดับการแสดง:</strong>
-        <input type="text" id="newTeamName" placeholder="ระบุชื่อทีม/ธีม...">
-        <button class="btn btn-add" onclick="addNewTeam()">+ เพิ่มเข้าลำดับการแสดง</button>
+        <strong>เพิ่มทีมใหม่:</strong>
+        <input type="text" id="newTeamName" placeholder="ระบุชื่อทีมหรือธีมการแสดงที่ยาวๆ ได้เลย...">
+        <button class="btn btn-add" onclick="addNewTeam()">+ เพิ่มเข้า Cloud</button>
     </div>
 
-    <div class="total-info" id="totalVotesText">คะแนนโหวตรวม: 0</div>
+    <button class="sync-btn" onclick="loadFromCloud()">🔄 อัปเดตข้อมูลจากเครื่องอื่น</button>
 
     <table id="scoreTable">
         <thead>
             <tr>
-                <th width="80">ลำดับที่แสดง</th>
-                <th>ชื่อทีม / ธีมการแสดง</th>
-                <th width="140">คะแนนกรรมการ (100)</th>
-                <th width="140">คะแนนโหวต (คน)</th>
-                <th width="110">กรรมการ 50%</th>
-                <th width="110">โหวต 50%</th>
-                <th width="140">คะแนนรวม</th>
-                <th width="80">แก้ไข</th>
-                <th width="100">อันดับรวม</th>
+                <th width="70">ลำดับ</th>
+                <th class="team-name-cell">ชื่อทีม / ธีมการแสดง</th>
+                <th width="110">กรรมการ (100)</th>
+                <th width="110">โหวต (คน)</th>
+                <th width="100">กก. 50%</th>
+                <th width="100">โหวต 50%</th>
+                <th width="120">คะแนนรวม</th>
+                <th width="100">อันดับ</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
 
-    <button class="btn btn-main" onclick="runProcess()">💾 คำนวณผล & บันทึกขึ้น CLOUD</button>
-
-    <center><button class="btn btn-clear" onclick="clearData()">ล้างข้อมูลเพื่อเริ่มใหม่</button></center>
+    <button class="btn btn-main" onclick="runProcess()">📊 คำนวณผล & บันทึก Cloud ทันที</button>
 </div>
 
 <script>
@@ -106,77 +102,70 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    window.onload = () => {
-        const savedData = JSON.parse(localStorage.getItem('nu_2026_order_system')) || [];
-        renderTable(savedData);
-    };
+    window.onload = loadFromCloud;
 
-    function addNewTeam() {
+    async function loadFromCloud() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '<tr><td colspan="8">🔄 กำลังซิงค์ข้อมูล...</td></tr>';
+        const snapshot = await db.collection("FinalResults2026").orderBy("order").get();
+        const data = [];
+        snapshot.forEach(doc => data.push(doc.data()));
+        renderTable(data);
+    }
+
+    async function addNewTeam() {
         const nameInput = document.getElementById('newTeamName');
         const name = nameInput.value.trim();
         if (!name) return alert("กรุณาใส่ชื่อทีม");
-        
-        const savedData = JSON.parse(localStorage.getItem('nu_2026_order_system')) || [];
-        savedData.push({ 
-            order: savedData.length + 1, // ลำดับที่แสดง
-            name: name, 
-            jRaw: '', vRaw: '', j50: 0, v50: 0, total: 0, rank: '-' 
-        });
-        localStorage.setItem('nu_2026_order_system', JSON.stringify(savedData));
-        nameInput.value = '';
-        renderTable(savedData);
-    }
 
-    function autoSave() {
-        const rows = Array.from(document.querySelectorAll('#tableBody tr'));
-        const data = rows.map(r => ({
-            order: parseInt(r.cells[0].innerText),
-            name: r.querySelector('.i-name').value,
-            jRaw: r.querySelector('.i-j').value,
-            vRaw: r.querySelector('.i-v').value,
-            j50: parseFloat(r.querySelector('.r-j').innerText) || 0,
-            v50: parseFloat(r.querySelector('.r-v').innerText) || 0,
-            total: parseFloat(r.querySelector('.r-t').innerText) || 0,
-            rank: r.querySelector('.rank-display').innerText
-        }));
-        localStorage.setItem('nu_2026_order_system', JSON.stringify(data));
+        const snapshot = await db.collection("FinalResults2026").get();
+        const nextOrder = snapshot.size + 1;
+
+        await db.collection("FinalResults2026").doc(`performance_order_${nextOrder}`).set({
+            order: nextOrder,
+            name: name,
+            jRaw: '', vRaw: '', j50: 0, v50: 0, total: 0, rank: '-'
+        });
+        nameInput.value = '';
+        loadFromCloud();
     }
 
     async function runProcess() {
         const rows = Array.from(document.querySelectorAll('#tableBody tr'));
         let totalVotes = 0;
-        rows.forEach(r => totalVotes += parseFloat(r.querySelector('.i-v').value) || 0);
-        document.getElementById('totalVotesText').innerText = `คะแนนโหวตรวม: ${totalVotes.toLocaleString()}`;
+        rows.forEach(r => {
+            const val = r.querySelector('.i-v');
+            if(val) totalVotes += parseFloat(val.value) || 0;
+        });
 
-        // 1. คำนวณคะแนนทั้งหมด
         let dataset = rows.map(r => {
-            const name = r.querySelector('.i-name').value;
+            const name = r.querySelector('.input-name-display').innerText; // อ่านจาก Text โดยตรง
             const jRaw = parseFloat(r.querySelector('.i-j').value) || 0;
             const vRaw = parseFloat(r.querySelector('.i-v').value) || 0;
             const j50 = jRaw / 2;
             const v50 = totalVotes > 0 ? (vRaw / totalVotes) * 50 : 0;
-            const total = j50 + v50;
-            return { order: parseInt(r.cells[0].innerText), name, jRaw, vRaw, j50, v50, total };
+            return { 
+                order: parseInt(r.cells[0].innerText), 
+                name, jRaw, vRaw, j50, v50, 
+                total: j50 + v50 
+            };
         });
 
-        // 2. หาอันดับ (Rank) โดยการเรียงลำดับคะแนนใน Memory
         let sorted = [...dataset].sort((a, b) => b.total - a.total);
         dataset = dataset.map(item => {
             const rank = item.total > 0 ? sorted.findIndex(s => s.total === item.total) + 1 : '-';
             return { ...item, rank };
         });
 
-        renderTable(dataset);
-        autoSave();
-
-        // 3. บันทึก Cloud
         const batch = db.batch();
-        dataset.forEach((d) => {
+        dataset.forEach(d => {
             const docRef = db.collection("FinalResults2026").doc(`performance_order_${d.order}`);
             batch.set(docRef, { ...d, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         });
+        
         await batch.commit();
-        alert("คำนวณอันดับและบันทึกข้อมูลสำเร็จ!");
+        alert("บันทึกสำเร็จ!");
+        renderTable(dataset);
     }
 
     function renderTable(data) {
@@ -192,41 +181,16 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${d.order}</td>
-                <td><input type="text" class="i-name input-name-locked" value="${d.name}" readonly></td>
-                <td><input type="number" class="i-j input-score" value="${d.jRaw}" oninput="autoSave()"></td>
-                <td><input type="number" class="i-v input-score" value="${d.vRaw}" oninput="autoSave()"></td>
-                <td class="r-j">${d.j50 ? d.j50.toFixed(2) : '0.00'}</td>
-                <td class="r-v">${d.v50 ? d.v50.toFixed(2) : '0.00'}</td>
-                <td class="r-t final-val">${d.total ? d.total.toFixed(2) : '0.00'}</td>
-                <td><button class="btn btn-edit" onclick="toggleEdit(this)">แก้ไข</button></td>
-                <td><span class="rank-badge rank-display ${rankClass}">${d.rank}</span></td>
+                <td class="team-name-cell"><div class="input-name-display">${d.name}</div></td>
+                <td><input type="number" class="i-j input-score" value="${d.jRaw}"></td>
+                <td><input type="number" class="i-v input-score" value="${d.vRaw}"></td>
+                <td style="color:#666">${d.j50 ? d.j50.toFixed(2) : '0.00'}</td>
+                <td style="color:#666">${d.v50 ? d.v50.toFixed(2) : '0.00'}</td>
+                <td style="font-weight:800; color:#1a237e; font-size:18px;">${d.total ? d.total.toFixed(2) : '0.00'}</td>
+                <td><span class="rank-badge ${rankClass}">${d.rank}</span></td>
             `;
             tbody.appendChild(row);
         });
-    }
-
-    function toggleEdit(btn) {
-        const row = btn.closest('tr');
-        const nameInput = row.querySelector('.i-name');
-        if (nameInput.readOnly) {
-            nameInput.readOnly = false;
-            nameInput.classList.add('editable');
-            btn.innerText = "ตกลง";
-            btn.style.background = "#22c55e";
-        } else {
-            nameInput.readOnly = true;
-            nameInput.classList.remove('editable');
-            btn.innerText = "แก้ไข";
-            btn.style.background = "#94a3b8";
-            autoSave();
-        }
-    }
-
-    function clearData() {
-        if (confirm("ต้องการล้างข้อมูลทั้งหมด? ลำดับการแสดงจะหายไปด้วย")) {
-            localStorage.removeItem('nu_2026_order_system');
-            location.reload();
-        }
     }
 </script>
 </body>
