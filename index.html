@@ -25,7 +25,7 @@
         .input-name-display { font-size: 17px; font-weight: bold; color: #1a237e; white-space: normal; }
         .editable-name { width: 90%; padding: 5px; font-family: 'Sarabun'; font-weight: bold; }
 
-        .input-score { width: 70px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; }
+        .input-score { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; }
         
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
         .btn-add { background: var(--primary-color); color: white; }
@@ -49,14 +49,14 @@
 <div class="container">
     <div class="header">
         <div class="logo-container">
-            <img src="https://drive.google.com/uc?export=view&id=19WyvCU-uSsCgwBCLJEeqntLU-hqZkfdR" alt="NU Mission 2026 Logo">
+            <img src="https://drive.google.com/uc?export=view&id=19WyvCU-uSsCgwBCLJEeqntLU-hqZkfdR" alt="Logo">
         </div>
-        <h1>NU Mission 2026: Performance System</h1>
-        <p>ระบบจัดการคะแนนและลำดับการแสดงแบบ Real-time</p>
+        <h1>NU Mission 2026 Scoring</h1>
+        <p>ระบบตัดสินรอบชิงชนะเลิศ (Final Round)</p>
     </div>
 
     <div class="admin-panel">
-        <strong>เพิ่มทีมตามลำดับการแสดง:</strong>
+        <strong>เพิ่มทีมตามลำดับแสดง:</strong>
         <input type="text" id="newTeamName" placeholder="ระบุชื่อทีมหรือธีมการแสดง...">
         <button class="btn btn-add" onclick="addNewTeam()">+ เพิ่มเข้าตาราง</button>
     </div>
@@ -77,13 +77,15 @@
                 <th width="180">จัดการ</th>
             </tr>
         </thead>
-        <tbody id="tableBody"></tbody>
+        <tbody id="tableBody">
+            </tbody>
     </table>
 
-    <button class="btn btn-main" onclick="runProcess()">📊 คำนวณอันดับและซิงค์ Cloud ทั้งหมด</button>
+    <button class="btn btn-main" onclick="runProcess()">📊 ประมวลผลและตัดสินลำดับ (Ranking)</button>
 </div>
 
 <script>
+    // Firebase Configuration จากที่คุณให้มา
     const firebaseConfig = {
         apiKey: "AIzaSyDCZB-UH_dGvLse9CnMmTurmVpDHTvW6RM",
         authDomain: "nu-mission-2025.firebaseapp.com",
@@ -93,84 +95,106 @@
         appId: "1:55452072551:web:b6a67a07e9e70d73ee72c2"
     };
 
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // โหลดข้อมูลครั้งแรก
+    // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
     window.onload = loadFromCloud;
 
     async function loadFromCloud() {
         const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '<tr><td colspan="9">🔄 กำลังโหลดข้อมูล...</td></tr>';
-        const snapshot = await db.collection("FinalResults2026").orderBy("order").get();
-        const data = [];
-        snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-        renderTable(data);
+        tbody.innerHTML = '<tr><td colspan="9">กำลังโหลดข้อมูลจาก Cloud...</td></tr>';
+        
+        try {
+            // ดึงข้อมูลเรียงตามลำดับการแสดง (order)
+            const snapshot = await db.collection("FinalResults2026").orderBy("order", "asc").get();
+            const data = [];
+            snapshot.forEach(doc => {
+                data.push({ id: doc.id, ...doc.data() });
+            });
+            renderTable(data);
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="9">ยังไม่มีข้อมูลในระบบ</td></tr>';
+        }
     }
 
     async function addNewTeam() {
         const nameInput = document.getElementById('newTeamName');
         const name = nameInput.value.trim();
-        if (!name) return alert("กรุณาใส่ชื่อทีม");
+        if (!name) return alert("กรุณาระบุชื่อทีม");
 
-        const snapshot = await db.collection("FinalResults2026").get();
-        const nextOrder = snapshot.size + 1;
+        try {
+            // เช็คจำนวนทีมปัจจุบันเพื่อกำหนดลำดับ (Order)
+            const snapshot = await db.collection("FinalResults2026").get();
+            const nextOrder = snapshot.size + 1;
 
-        const newDoc = {
-            order: nextOrder,
-            name: name,
-            jRaw: '', vRaw: '', j50: 0, v50: 0, total: 0, rank: '-'
-        };
+            const newTeam = {
+                order: nextOrder,
+                name: name,
+                jRaw: 0,
+                vRaw: 0,
+                j50: 0,
+                v50: 0,
+                total: 0,
+                rank: '-'
+            };
 
-        await db.collection("FinalResults2026").add(newDoc);
-        nameInput.value = '';
-        loadFromCloud(); // อัปเดตตารางทันที
+            await db.collection("FinalResults2026").add(newTeam);
+            nameInput.value = '';
+            loadFromCloud(); // รีเฟรชตารางทันที
+        } catch (e) {
+            alert("เกิดข้อผิดพลาด: " + e.message);
+        }
     }
 
     async function runProcess() {
         const rows = Array.from(document.querySelectorAll('#tableBody tr'));
+        if (rows.length === 0) return;
+
         let totalVotes = 0;
+        // คำนวณยอดโหวตรวมทั้งหมดก่อน
         rows.forEach(r => {
-            const v = r.querySelector('.i-v');
-            if(v) totalVotes += parseFloat(v.value) || 0;
+            const vInput = r.querySelector('.i-v');
+            if (vInput) totalVotes += parseFloat(vInput.value) || 0;
         });
-        document.getElementById('totalVotesText').innerText = `ยอดโหวตรวม: ${totalVotes.toLocaleString()}`;
+        document.getElementById('totalVotesText').innerText = `ยอดโหวตรวม: ${totalVotes.toLocaleString()} คน`;
 
         let dataset = rows.map(r => {
+            const id = r.getAttribute('data-id');
+            const order = parseInt(r.cells[0].innerText);
             const name = r.querySelector('.input-name-display').innerText;
             const jRaw = parseFloat(r.querySelector('.i-j').value) || 0;
             const vRaw = parseFloat(r.querySelector('.i-v').value) || 0;
+            
             const j50 = jRaw / 2;
             const v50 = totalVotes > 0 ? (vRaw / totalVotes) * 50 : 0;
-            return { 
-                id: r.dataset.id,
-                order: parseInt(r.cells[0].innerText), 
-                name, jRaw, vRaw, j50, v50, 
-                total: j50 + v50 
-            };
+            const total = j50 + v50;
+
+            return { id, order, name, jRaw, vRaw, j50, v50, total };
         });
 
-        let sorted = [...dataset].filter(d => d.total > 0).sort((a, b) => b.total - a.total);
-        dataset = dataset.map(item => {
-            const rank = item.total > 0 ? sorted.findIndex(s => s.id === item.id) + 1 : '-';
-            return { ...item, rank };
-        });
-
+        // สร้าง Ranking (เฉพาะคนที่มีคะแนน)
+        let sorted = dataset.filter(d => d.total > 0).sort((a, b) => b.total - a.total);
+        
         const batch = db.batch();
         dataset.forEach(d => {
+            const rank = d.total > 0 ? (sorted.findIndex(s => s.id === d.id) + 1) : '-';
             const docRef = db.collection("FinalResults2026").doc(d.id);
-            batch.update(docRef, { ...d, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            batch.update(docRef, { ...d, rank: rank });
         });
-        
+
         await batch.commit();
-        alert("✨ คำนวณและบันทึก Cloud สำเร็จ!");
-        renderTable(dataset);
+        alert("คำนวณอันดับและบันทึกสำเร็จ!");
+        loadFromCloud();
     }
 
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        data.forEach((d) => {
+        
+        data.forEach(d => {
             let rankClass = '';
             if (d.rank === 1) rankClass = 'r1';
             else if (d.rank === 2) rankClass = 'r2';
@@ -178,48 +202,46 @@
             else if (d.rank === 4) rankClass = 'r4';
 
             const row = document.createElement('tr');
-            row.dataset.id = d.id;
+            row.setAttribute('data-id', d.id);
             row.innerHTML = `
                 <td>${d.order}</td>
                 <td class="team-name-cell"><div class="input-name-display">${d.name}</div></td>
-                <td><input type="number" class="i-j input-score" value="${d.jRaw}"></td>
-                <td><input type="number" class="i-v input-score" value="${d.vRaw}"></td>
-                <td style="color:#718096">${d.j50 ? d.j50.toFixed(2) : '0.00'}</td>
-                <td style="color:#718096">${d.v50 ? d.v50.toFixed(2) : '0.00'}</td>
-                <td style="font-weight:800; color:var(--primary-color);">${d.total ? d.total.toFixed(2) : '0.00'}</td>
+                <td><input type="number" class="i-j input-score" value="${d.jRaw || 0}"></td>
+                <td><input type="number" class="i-v input-score" value="${d.vRaw || 0}"></td>
+                <td style="color:#666">${(d.j50 || 0).toFixed(2)}</td>
+                <td style="color:#666">${(d.v50 || 0).toFixed(2)}</td>
+                <td style="font-weight:800; color:var(--primary-color);">${(d.total || 0).toFixed(2)}</td>
                 <td><span class="rank-badge ${rankClass}">${d.rank}</span></td>
                 <td>
-                    <button class="btn btn-edit" onclick="editRow(this)">แก้ไข</button>
-                    <button class="btn btn-delete" onclick="deleteRow('${d.id}')">ลบ</button>
+                    <button class="btn btn-edit" onclick="editName(this)">แก้ไขชื่อ</button>
+                    <button class="btn btn-delete" onclick="deleteTeam('${d.id}')">ลบ</button>
                 </td>
             `;
             tbody.appendChild(row);
         });
     }
 
-    function editRow(btn) {
-        const row = btn.closest('tr');
-        const nameDiv = row.querySelector('.input-name-display');
-        const currentName = nameDiv.innerText;
-        nameDiv.innerHTML = `<input type="text" class="editable-name" value="${currentName}">`;
-        btn.innerText = "ตกลง";
-        btn.className = "btn btn-save-row";
-        btn.onclick = function() { saveEdit(this); };
-    }
-
-    async function saveEdit(btn) {
-        const row = btn.closest('tr');
-        const newName = row.querySelector('.editable-name').value;
-        const id = row.dataset.id;
-        await db.collection("FinalResults2026").doc(id).update({ name: newName });
-        loadFromCloud();
-    }
-
-    async function deleteRow(id) {
-        if (confirm("คุณต้องการลบทีมนี้ออกจากลำดับการแสดงใช่หรือไม่?")) {
+    async function deleteTeam(id) {
+        if (confirm("คุณต้องการลบทีมนี้ใช่หรือไม่?")) {
             await db.collection("FinalResults2026").doc(id).delete();
             loadFromCloud();
         }
+    }
+
+    function editName(btn) {
+        const row = btn.closest('tr');
+        const nameDiv = row.querySelector('.input-name-display');
+        const oldName = nameDiv.innerText;
+        nameDiv.innerHTML = `<input type="text" class="editable-name" value="${oldName}">`;
+        btn.innerText = "ตกลง";
+        btn.onclick = () => saveName(btn, row.getAttribute('data-id'));
+    }
+
+    async function saveName(btn, id) {
+        const row = btn.closest('tr');
+        const newName = row.querySelector('.editable-name').value;
+        await db.collection("FinalResults2026").doc(id).update({ name: newName });
+        loadFromCloud();
     }
 </script>
 </body>
